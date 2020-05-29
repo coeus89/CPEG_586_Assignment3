@@ -11,6 +11,7 @@
     <OutputPath>.</OutputPath>
     <Name>CPEG_586_Assignment3</Name>
     <RootNamespace>CPEG_586_Assignment3</RootNamespace>
+    <InterpreterId>CondaEnv|CondaEnv|tensorflow2cpu</InterpreterId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -22,6 +23,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="CPEG_586_Assignment3.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="CondaEnv|CondaEnv|Anaconda3" />
+    <InterpreterReference Include="CondaEnv|CondaEnv|tensorflow2cpu" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
