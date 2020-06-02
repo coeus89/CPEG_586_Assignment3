@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from sklearn.utils import shuffle
 import math
+from MyEnums import TrainingType
 
 trainingImages = len(os.listdir("S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\CPEG_586_Assignment3\\Data\\Training1000"))
 testImages = len(os.listdir("S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\CPEG_586_Assignment3\\Data\\Test10000"))
@@ -11,6 +12,13 @@ train = np.empty((trainingImages,28,28),dtype='float64')
 trainY = np.zeros((trainingImages,10,1))
 test = np.empty((testImages,28,28),dtype='float64')
 testY = np.zeros((testImages,10,1))
+
+trainType = TrainingType.MiniBatch
+batchSize = 10.0
+
+HiddenLayer1Neurons = 100
+OutputLayerNeurons = 10
+numEpochs = 1000
 
 #load images
 i = 0
@@ -30,24 +38,35 @@ for filename in os.listdir("S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Ass
 trainX = train.reshape(train.shape[0],train.shape[1]*train.shape[2])
 testX = test.reshape(test.shape[0],test.shape[1]*test.shape[2])
 
-print("End of Setup.\n")
 
-HiddenLayer1Neurons = 100
-OutputLayerNeurons = 10
-numEpochs = 150
+
+
+#get array ready for 90% dropout
+dropoutZeros = (int)(0.1*HiddenLayer1Neurons)
+dropoutOnes = HiddenLayer1Neurons - dropoutZeros
+ZerosVector = np.zeros((dropoutZeros,1))
+OnesVector = np.ones((dropoutOnes,1))
+HiddenLayer1Dropout = np.concatenate((ZerosVector,OnesVector))
 
 w1 = np.random.uniform(low=-0.1,high=0.1,size=(HiddenLayer1Neurons,784))
 b1 = np.random.uniform(low=-1.0,high=1.0,size=(HiddenLayer1Neurons,1))
 w2 = np.random.uniform(low=-0.1,high=0.1,size=(OutputLayerNeurons,HiddenLayer1Neurons))
 b2 = np.random.uniform(low=-1.0,high=1.0,size=(OutputLayerNeurons,1))
+gradW2 = np.zeros((w2.shape))
+gradB2 = np.zeros((b2.shape))
+gradW1 = np.zeros((w1.shape))
+gradB1 = np.zeros((b1.shape))
 learningRate = 0.1
+
+print("End of Setup.\n")
+
 
 def sigmoid(s):
     # res = np.empty((len(s),1),dtype='float64')
     # for x in range(0,len(s)):
     #     exponent = -1.0*s[x,0]
     #     res[x,0] = (1.0/(1.0 + math.e**exponent)) #Sigmoid
-    return 1/(1+np.exp(-1*s))
+    return 1.0/(1.0+np.exp(-1.0*s))
 
 def logLoss(a,y):
     if len(a) != len(y):
@@ -57,18 +76,20 @@ def logLoss(a,y):
         resLoss += -(y[z,0] * np.log(a[z,0]) + (1.0 - y[z,0]) * np.log(1.0 - a[z,0]))
     return resLoss
 
+
 for ep in range(0,numEpochs):
     # Shuffle data between before each Epoch.
     trainX,trainY = shuffle(trainX, trainY)
     loss = 0
-    
+    HiddenLayer1Dropout = shuffle(HiddenLayer1Dropout)
+
     for i in range(0,trainingImages):
         #Forward Pass
         currImg = trainX[i]
         currImg = currImg.reshape(len(currImg),1)
         #print(str(currImg))
         s1 = np.dot(w1,currImg) + b1
-        a1 = sigmoid(s1)
+        a1 = sigmoid(s1) * HiddenLayer1Dropout
         s2 = np.dot(w2,a1) + b2
         a2 = sigmoid(s2)
         
@@ -77,27 +98,40 @@ for ep in range(0,numEpochs):
         # if i<100:
         #     print("Loss: " + str(loss))
 
-
         # Back Propagation
-        #delta2 = ((trainY[i] - a2).T).dot(a2.dot((1.0 - a2).T))
-        #delta1 = (delta2.dot(w2)).dot(a1.dot((1.0 - a1).T))
         yma2 = trainY[i] - a2 # y minus a2
         aoma2 = a2*(1.0 - a2) #a2 * one minus a2
         delta2 = ((yma2) * (aoma2)).T
         aoma = a1*(1.0 - a1) # a1 * one minus a1
         delta1 = (np.dot(delta2,w2)).T * aoma # (((delta2).dot(w2)).T * (aoma)) 
 
-        # gradW2 = (delta2.T).dot(a1.T)
-        gradW2 = np.dot(a1, delta2).T #(delta2.T).dot(a1.T)
-        gradB2 = delta2.T
-        gradW1 = np.dot(delta1,currImg.T) #(delta1).dot(currImg.T)
-        gradB1 = delta1
 
         #update weights and biases
-        w1 = w1 - learningRate * -1.0*gradW1
-        w2 = w2 - learningRate * -1.0*gradW2
-        b1 = b1 - learningRate * -1.0*gradB1
-        b2 = b2 - learningRate * -1.0*gradB2
+        if trainType == TrainingType.Stochastic:
+            gradW2 = np.dot(a1, delta2).T #(delta2.T).dot(a1.T)
+            gradB2 = delta2.T
+            gradW1 = np.dot(delta1,currImg.T) #(delta1).dot(currImg.T)
+            gradB1 = delta1
+            
+            w1 = w1 - learningRate * -1.0*gradW1
+            w2 = w2 - learningRate * -1.0*gradW2
+            b1 = b1 - learningRate * -1.0*gradB1
+            b2 = b2 - learningRate * -1.0*gradB2
+        elif trainType == TrainingType.MiniBatch:
+            gradW2 += (np.dot(a1, delta2).T) 
+            gradB2 += (delta2.T)
+            gradW1 += (np.dot(delta1,currImg.T))
+            gradB1 += delta1
+            #if you've hit a full batch, update weights and biases.
+            if i % batchSize == (batchSize - 1):
+                w1 = w1 - learningRate * -1.0*(gradW1/batchSize)
+                w2 = w2 - learningRate * -1.0*(gradW2/batchSize)
+                b1 = b1 - learningRate * -1.0*(gradB1/batchSize)
+                b2 = b2 - learningRate * -1.0*(gradB2/batchSize)
+                gradW2 = np.zeros((w2.shape))
+                gradB2 = np.zeros((b2.shape))
+                gradW1 = np.zeros((w1.shape))
+                gradB1 = np.zeros((b1.shape))
 
         #print("New w1, w2, b1, and b2: \n" + str(w1) +  " \n" +  str(w2) + " \n" + str(b1) + " \n" +str(b2) + " \n")
         
@@ -114,9 +148,9 @@ for i in range(testY.shape[0]):
     currImg = testX[i]
     currImg = currImg.reshape(len(currImg),1)
     s1 = np.dot(w1,currImg) + b1
-    a1 = 1/(1+np.exp(-1*s1)) # np.exp operates on the array
+    a1 = 1.0/(1.0+np.exp(-1.0*s1)) # np.exp operates on the array
     s2 = np.dot(w2,a1) + b2
-    a2 = 1/(1+np.exp(-1*s2))
+    a2 = 1.0/(1.0+np.exp(-1.0*s2))
     # determine index of maximum output value
     a2index = a2.argmax(axis = 0)
     currY = testY[i]
@@ -124,4 +158,4 @@ for i in range(testY.shape[0]):
     # if (testY[i,a2index,0] == 1):
     if (currY[a2index,0] == 1):
         accuracyCount = accuracyCount + 1
-print("Accuracy count = " + str(accuracyCount/testImages))
+print("Accuracy count = " + str(100*accuracyCount/testImages) + "%")
