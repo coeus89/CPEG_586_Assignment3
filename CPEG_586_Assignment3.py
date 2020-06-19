@@ -9,8 +9,8 @@ from MyEnums import ActivationType
 from MyEnums import BatchNormMode
 from MyEnums import LROptimizerType
 
-trainingImages = len(os.listdir("S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\CPEG_586_Assignment3\\Data\\Training1000"))
-testImages = len(os.listdir("S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\CPEG_586_Assignment3\\Data\\Test10000"))
+trainingImages = len(os.listdir("S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\Data\\Training1000"))
+testImages = len(os.listdir("S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\Data\\Test10000"))
 train = np.empty((trainingImages,28,28),dtype='float64')
 trainY = np.zeros((trainingImages,10,1))
 test = np.empty((testImages,28,28),dtype='float64')
@@ -28,17 +28,17 @@ numEpochs = 1000
 
 #load images
 i = 0
-for filename in os.listdir("S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\CPEG_586_Assignment3\\Data\\Training1000"):
+for filename in os.listdir("S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\Data\\Training1000"):
     y = int(filename[0])
     trainY[i,y] = 1.0
-    train[i] = cv2.imread('S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\CPEG_586_Assignment3\\Data\\Training1000\\{0}'.format(filename),0)/255.0 #for color use 1
+    train[i] = cv2.imread('S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\Data\\Training1000\\{0}'.format(filename),0)/255.0 #for color use 1
     i += 1
 
 j = 0
-for filename in os.listdir("S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\CPEG_586_Assignment3\\Data\\Test10000"):
+for filename in os.listdir("S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\Data\\Test10000"):
     y = int(filename[0])
     testY[j,y] = 1.0
-    test[j] = cv2.imread('S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\CPEG_586_Assignment3\\Data\\Test10000\\{0}'.format(filename),0)/255.0 
+    test[j] = cv2.imread('S:\\Users\\Jkara\\OneDrive\\Documents\\CPEG_586\\Assignments_Workspace\\Data\\Test10000\\{0}'.format(filename),0)/255.0 
     j += 1
 
 trainX = train.reshape(train.shape[0],train.shape[1]*train.shape[2])
@@ -67,7 +67,7 @@ learningRate = 0.01
 print("End of Setup.\n")
 
 
-def sigmoid(s):
+def Sigmoid(s):
     return 1.0/(1.0+np.exp(-1.0*s))
 
 def TanH(s):
@@ -130,11 +130,10 @@ for ep in range(0,numEpochs):
         #Forward Pass
         currImg = trainX[i]
         currImg = currImg.reshape(len(currImg),1)
-        #print(str(currImg))
         s1 = np.dot(w1,currImg) + b1
-        a1 = sigmoid(s1) * HiddenLayer1Dropout
+        a1 = Sigmoid(s1) * HiddenLayer1Dropout
         s2 = np.dot(w2,a1) + b2
-        a2 = sigmoid(s2)
+        a2 = Sigmoid(s2)
         
         #loss = logLoss(a2,trainY[i])
         loss += (0.5*((a2 - trainY[i])*(a2 - trainY[i]))).sum()
